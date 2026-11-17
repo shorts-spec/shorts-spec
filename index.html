@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shorts</title>
+    <link rel="icon" type="image/png" href="vfvdvdz.png">
+    <style>
+        @font-face {
+            font-family: 'Font12';
+            src: url('12.ttf') format('truetype');
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'FontRewt';
+            src: url('rewt.ttf') format('truetype');
+            font-display: swap;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #ffffff;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #theme-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            z-index: 10;
+            border-radius: 12px;
+            transition: transform 0.15s ease;
+            touch-action: manipulation;
+        }
+
+        #theme-btn:hover {
+            transform: scale(1.06);
+        }
+
+        #theme-btn:active {
+            transform: scale(0.92);
+        }
+
+        @media (max-width: 600px) {
+            #theme-btn {
+                top: 12px;
+                right: 12px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <img id="theme-btn" src="vfvdvdz.png" alt="Сменить тему" title="Переключить тёмную/светлую тему">
+    <canvas id="screen"></canvas>
+
+    <script>
+        const canvas = document.getElementById('screen');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const themeBtn = document.getElementById('theme-btn');
+
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя0123456789';
+        const fonts = ['Font12', 'FontRewt'];
+        
+        const INTERVAL = 20;            // Скорость смены (20 мс)
+        const CELL_SIZE = 18;           // Размер ячейки
+        const FONT_SIZE = Math.floor(CELL_SIZE * 0.8); 
+        const MAX_COLUMNS = 20;         // 20 колонок для широких экранов
+        const TRANSITION_TIME = 700;    // Плавность перехода (0.7 сек)
+
+        let rows = 0;
+        let activeCols = MAX_COLUMNS;
+        let startX = 0;
+        let colWidth = 0;
+
+        let targetTheme = 0;
+        let currentTheme = 0;
+        let lastFrameTime = performance.now();
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            rows = Math.ceil(canvas.height / CELL_SIZE);
+            
+            const maxPossibleCols = Math.floor((canvas.width - 20) / CELL_SIZE);
+            activeCols = Math.max(6, Math.min(MAX_COLUMNS, maxPossibleCols));
+            
+            colWidth = activeCols * CELL_SIZE;
+            startX = Math.floor((canvas.width - colWidth) / 2);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        themeBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            targetTheme = targetTheme === 0 ? 1 : 0;
+        });
+
+        function getRandomColor() {
+            const hue = Math.floor(Math.random() * 360);
+            return `hsl(${hue}, 90%, 40%)`;
+        }
+
+        function drawFrame() {
+            const now = performance.now();
+            const dt = now - lastFrameTime;
+            lastFrameTime = now;
+
+            if (currentTheme !== targetTheme) {
+                const step = dt / TRANSITION_TIME;
+                if (targetTheme > currentTheme) {
+                    currentTheme = Math.min(1, currentTheme + step);
+                } else {
+                    currentTheme = Math.max(0, currentTheme - step);
+                }
+            }
+
+            // Боковые рамки плавно темнеют от 255 (белый) до 28 (мягкий тёмно-серый)
+            const outerShade = Math.round(255 - (227 * currentTheme));
+            const outerColor = `rgb(${outerShade}, ${outerShade}, ${outerShade})`;
+
+            ctx.fillStyle = outerColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Центральный фон под буквами темнеет от 255 (белый) до 185 (приглушённый серый)
+            if (currentTheme > 0) {
+                const innerShade = Math.round(255 - (70 * currentTheme));
+                ctx.fillStyle = `rgb(${innerShade}, ${innerShade}, ${innerShade})`;
+                ctx.fillRect(startX, 0, colWidth, canvas.height);
+            }
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let r = 0; r < rows; r++) {
+                const y = r * CELL_SIZE + CELL_SIZE / 2;
+
+                for (let c = 0; c < activeCols; c++) {
+                    const x = startX + c * CELL_SIZE + CELL_SIZE / 2;
+
+                    const randomChar = chars.charAt(Math.floor(Math.random() * chars.length));
+                    const randomFont = fonts[Math.floor(Math.random() * fonts.length)];
+
+                    ctx.fillStyle = getRandomColor();
+                    ctx.font = `${FONT_SIZE}px "${randomFont}", sans-serif`;
+                    ctx.fillText(randomChar, x, y);
+                }
+            }
+        }
+
+        drawFrame();
+        setInterval(drawFrame, INTERVAL);
+    </script>
+
+</body>
+</html>
